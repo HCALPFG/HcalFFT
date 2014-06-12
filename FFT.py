@@ -3,14 +3,58 @@ import ROOT as r
 import numpy as n
 import array as a
 
+r.gStyle.SetOptStat(0)
+
 #------------------------------------------------------------------------------------------------
 # User declares only these values
 #------------------------------------------------------------------------------------------------
 
-r.gStyle.SetOptStat(0)
+in_file = r.TFile("HFP_QuestionChannels.root");
+graph = in_file.Get("HFP13_ETA38_PHI25_T10_SRCTUBE_Ieta38_Iphi25_Depth2 Run 221509reelPosition");
 
-in_file = r.TFile("hists.root");
-original_histogram = in_file.Get("hist");
+
+#------------------------------------------------------------------------------------------------
+# Make the graph into a histogram
+#------------------------------------------------------------------------------------------------
+
+d_x_y = {}
+
+n_points = graph.GetN()
+x_array = graph.GetX()
+y_array = graph.GetY()
+
+# Declare the histogram
+original_histogram = r.TH1F("hist", "hist", 1001, 5799.5, 6800.5)
+
+# Define x axis limits
+x_min = original_histogram.GetXaxis().GetXmin()
+x_max = original_histogram.GetXaxis().GetXmax()
+
+# Get the x/y values in the graph
+
+x_values = [] 
+for i in range(1,n_points):
+    x = x_array[i]
+    y = y_array[i]
+    if x not in d_x_y.keys():
+        d_x_y[x] = []
+        x_values.append ( x ) 
+    d_x_y[x].append ( y )
+
+# Fill the x/y values into the histogram
+
+for x_value in x_values:
+    if x_value < x_min : continue
+    if x_value > x_max : continue
+    y_values = d_x_y[x_value]
+    y_value = 0.
+    for tmp_y_value in y_values:
+        y_value = y_value + tmp_y_value
+    y_value = y_value / float(len(y_values))
+    bin = original_histogram.FindBin(x_value)
+    original_histogram.SetBinContent(bin,y_value)
+
+# Store some useful info about the histogram
 
 original_histogram_nbins = original_histogram.GetNbinsX()
 original_function_xmin  = original_histogram.GetXaxis().GetXmin()
