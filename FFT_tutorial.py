@@ -8,9 +8,14 @@ r.gStyle.SetOptStat(0)
 # User declares only these values
 #------------------------------------------------------------------------------------------------
 
-frequencies = [0.5, 1., 2.]
-phases      = [ 0., 0., 0.] 
-amps        = [ 1., 2., 0.5]
+# frequencies = [0.5, 1., 2.]
+# phases      = [ 0., 0., 0.] 
+# amps        = [ 1., 2., 0.5]
+
+
+frequencies = [ 0.5 ]
+phases      = [ 0.0 ] 
+amps        = [ 1.0 ]
 
 original_histogram_nbins = 200
 original_function_xmin  = 0.;

@@ -3,7 +3,7 @@ import ROOT as r
 import numpy as n
 import array as a
 
-r.gStyle.SetOptStat(0)
+# r.gStyle.SetOptStat(0)
 
 #------------------------------------------------------------------------------------------------
 # User declares only these values
@@ -11,7 +11,7 @@ r.gStyle.SetOptStat(0)
 
 in_file = r.TFile("HFP_QuestionChannels.root");
 graph = in_file.Get("HFP13_ETA38_PHI25_T10_SRCTUBE_Ieta38_Iphi25_Depth2 Run 221509reelPosition");
-
+out_file = r.TFile ("fft_out_file.root","RECREATE")
 
 #------------------------------------------------------------------------------------------------
 # Make the graph into a histogram
@@ -71,6 +71,7 @@ fft_mag_canvas        = r.TCanvas()
 fft_mag_zeroFirstBin_canvas = r.TCanvas()
 fft_phase_canvas      = r.TCanvas()
 reconstruction_canvas = r.TCanvas()
+fft_mag_zeroFirstBin_upperHalf_canvas = r.TCanvas()
 
 #------------------------------------------------------------------------------------------------
 # Draw original histogram
@@ -118,7 +119,7 @@ fft_mag_histogram = r.TH1D("fft_magnitude","fft_magnitude",
 for bin in range(1, fft_mag_histogram.GetNbinsX() + 1):
     fft_mag_histogram.SetBinContent(bin, fft_mag_histogram_raw.GetBinContent(bin))
 
-fft_mag_histogram.GetXaxis().SetRangeUser(0., fft_mag_histogram_xmax / 2.0)
+# fft_mag_histogram.GetXaxis().SetRangeUser(0., fft_mag_histogram_xmax / 2.0)
 fft_mag_histogram.Scale(2.0 / float(original_histogram_nbins))
 
 # Label axes
@@ -142,7 +143,6 @@ fft_mag_zeroFirstBin_canvas.cd()
 fft_mag_histogram_zeroFirstBin = fft_mag_histogram.Clone()
 fft_mag_histogram_zeroFirstBin.SetBinContent(1,0)
 
-
 # Draw histogram
 fft_mag_histogram_zeroFirstBin.Draw()
 
@@ -150,6 +150,28 @@ fft_mag_histogram_zeroFirstBin.Draw()
 fft_mag_zeroFirstBin_canvas.SaveAs("png/FFT_magnitude_zeroFirstBin.png");
 fft_mag_zeroFirstBin_canvas.Print(pdf_name);
 
+
+#------------------------------------------------------------------------------------------------
+# Look at only half of the plot
+#------------------------------------------------------------------------------------------------
+
+fft_mag_zeroFirstBin_upperHalf_canvas.cd()
+
+fft_mag_histogram_zeroFirstBin_upperHalf = fft_mag_histogram_zeroFirstBin.Clone()
+fft_mag_histogram_zeroFirstBin_upperHalf_xmax = fft_mag_histogram_zeroFirstBin.GetXaxis().GetXmax()
+fft_mag_histogram_zeroFirstBin_upperHalf_xmin = fft_mag_histogram_zeroFirstBin_upperHalf_xmax / 2.0
+fft_mag_histogram_zeroFirstBin_upperHalf.GetXaxis().SetRangeUser(fft_mag_histogram_zeroFirstBin_upperHalf_xmin,
+                                                                 fft_mag_histogram_zeroFirstBin_upperHalf_xmax)
+
+# Draw histogram
+fft_mag_histogram_zeroFirstBin_upperHalf.Draw()
+
+# Save canvas
+fft_mag_zeroFirstBin_upperHalf_canvas.SaveAs("png/FFT_magnitude_zeroFirstBin_upperHalf.png");
+fft_mag_zeroFirstBin_upperHalf_canvas.Print(pdf_name);
+
+out_file.cd()
+fft_mag_histogram_zeroFirstBin_upperHalf.Write("FFT_magnitude")
 
 #------------------------------------------------------------------------------------------------
 # Now do the phase transform
