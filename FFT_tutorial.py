@@ -82,7 +82,7 @@ original_canvas.Print(pdf_name)
 
 fft_mag_canvas.cd()
 
-# What does this do?
+# Initialize the Virtual FFT
 r.TVirtualFFT.SetTransform(0);
 
 # Declare the FFT histogram
