@@ -1,53 +1,51 @@
 import ROOT as r
 import numpy as n
 import array as a
+import sys
 
 r.gStyle.SetOptStat(0)
+
+#------------------------------------------------------------------------------------------------
+# Define histograms
+#------------------------------------------------------------------------------------------------
+
+def getRealFrequency(bin_number, sample_frequency, nFFT):
+    if bin_number <= (n_FFT / 2): 
+        real_frequency = float(bin_number) * sample_frequency / float(nFFT);
+    else:
+        real_frequency = -1.0 * float(nFFT - bin_number) * sample_frequency / float(nFFT);
+    return real_frequency;
+
+def getFrequencySpacing(sample_frequency, nFFT):
+    spacing = sample_frequency / float(nFFT)
+    return spacing
 
 #------------------------------------------------------------------------------------------------
 # User declares only these values
 #------------------------------------------------------------------------------------------------
 
-# frequencies = [0.5, 1., 2.]
-# phases      = [ 0., 0., 0.] 
-# amps        = [ 1., 2., 0.5]
+frequencies = [0.5, 1., 2.]
+phases      = [ 0., 0., 0.] 
+amps        = [ 1., 2., 0.5]
 
-
-frequencies = [ 0.5 ]
-phases      = [ 0.0 ] 
-amps        = [ 1.0 ]
-
-original_histogram_nbins = 200
+original_histogram_nbins = 200;
 original_function_xmin  = 0.;
 original_function_xmax  = 10;
 
-#------------------------------------------------------------------------------------------------
-# Declare canvases
-#------------------------------------------------------------------------------------------------
-
-pdf_name = "fft_example.pdf"
-
-original_canvas       = r.TCanvas()
-fft_mag_canvas        = r.TCanvas()
-fft_phase_canvas      = r.TCanvas()
-reconstruction_canvas = r.TCanvas()
+pdf_name = "fft_tutorial.pdf"
 
 #------------------------------------------------------------------------------------------------
 # Draw original function and histogram
 #------------------------------------------------------------------------------------------------
 
-original_canvas.cd()
-
 # Get the size of the histogram
-minimum_frequency = min(frequencies)
-maximum_frequency = max(frequencies)
 original_function_width = original_function_xmax - original_function_xmin 
 
 # Declare function
 
 function_string = ""
 for i_frequency, frequency in enumerate(frequencies):
-    function_string = function_string + str(amps[i_frequency])+"*sin(2.0*TMath::Pi()*(x*"+str(frequency)+"+"+str(phases[i_frequency])+"))+"
+    function_string = function_string + str(amps[i_frequency])+"*sin(2.0*TMath::Pi()*x*"+str(frequency)+")+"
 function_string = function_string[:-1]
 print function_string
 
@@ -69,146 +67,157 @@ for ibin in range(0, original_histogram_nbins):
     
 # Draw histogram and function
 original_histogram.Draw()
-# original_function.Draw("SAME")
 
-# Save canvas
-original_canvas.SaveAs("png/tutorial_original_histogram.png");
-original_canvas.Print(pdf_name + "[")
-original_canvas.Print(pdf_name)
+hist = original_histogram
 
 #------------------------------------------------------------------------------------------------
-# Now do the magnitude transform
+# Store some useful info about the histogram
 #------------------------------------------------------------------------------------------------
 
-fft_mag_canvas.cd()
-
-# Initialize the Virtual FFT
-r.TVirtualFFT.SetTransform(0);
-
-# Declare the FFT histogram
-fft_mag_histogram_raw = r.NULL
-
-# Do FFT
-fft_mag_histogram_raw = original_histogram.FFT(fft_mag_histogram_raw,"MAG")
-
-# Rescale x-axis on magnitude histogram
-
-fft_mag_histogram_xmin  = 0
-fft_mag_histogram_xmax  = fft_mag_histogram_raw.GetXaxis().GetXmax() / original_histogram.GetXaxis().GetXmax();
-
-fft_mag_histogram = r.TH1D("fft_magnitude","fft_magnitude", 
-                           fft_mag_histogram_raw.GetNbinsX(), 
-                           fft_mag_histogram_xmin, 
-                           fft_mag_histogram_xmax)
-
-for bin in range(1, fft_mag_histogram.GetNbinsX() + 1):
-    fft_mag_histogram.SetBinContent(bin, fft_mag_histogram_raw.GetBinContent(bin))
-
-# fft_mag_histogram.GetXaxis().SetRangeUser(0., fft_mag_histogram_xmax / 2.0)
-fft_mag_histogram.Scale(2.0 / float(original_histogram_nbins))
-
-# Label axes
-fft_mag_histogram.GetXaxis().SetTitle("Frequency [Hz]");
-fft_mag_histogram.GetYaxis().SetTitle("FFT magnitude");
-# fft_mag_histogram.GetXaxis().SetRangeUser(0, 3.0)
-
-# Draw histogram
-fft_mag_histogram.Draw()
-
-# Save canvas
-fft_mag_canvas.SaveAs("png/tutorial_FFT_magnitude.png");
-fft_mag_canvas.Print(pdf_name);
+n_bins           = hist.GetNbinsX()
+x_min            = hist.GetXaxis().GetXmin()
+x_max            = hist.GetXaxis().GetXmax()
+n_FFT            = 2 * ((n_bins + 1) / 2 + 1);
+n_dimension      = 1;
+sample_period    = (x_max - x_min) / float (n_bins);
+sample_frequency = 1.0 / sample_period;
 
 #------------------------------------------------------------------------------------------------
-# Now do the phase transform
+# Store the input points
 #------------------------------------------------------------------------------------------------
 
-fft_phase_canvas.cd()
-
-# What does this do?
-r.TVirtualFFT.SetTransform(0);
-
-# Declare the FFT histogram
-fft_phase_histogram_raw = r.NULL
-
-# Do FFT
-fft_phase_histogram_raw = original_histogram.FFT(fft_phase_histogram_raw,"PH")
-
-# Rescale x-axis on phase histogram
-
-fft_phase_histogram_xmin  = 0
-fft_phase_histogram_xmax  = fft_phase_histogram_raw.GetXaxis().GetXmax() / original_histogram.GetXaxis().GetXmax();
-
-fft_phase_histogram = r.TH1D("fft_phase","fft_phase", 
-                             fft_phase_histogram_raw.GetNbinsX(), 
-                             fft_phase_histogram_xmin, 
-                             fft_phase_histogram_xmax)
-
-for bin in range(1, fft_phase_histogram.GetNbinsX() + 1):
-    fft_phase_histogram.SetBinContent(bin, fft_phase_histogram_raw.GetBinContent(bin))
-
-fft_phase_histogram.Scale(1.0 / r.TMath.Sqrt(float(original_histogram_nbins)))
-
-# Label axes
-fft_phase_histogram.GetXaxis().SetTitle("Frequency [Hz]");
-fft_phase_histogram.GetYaxis().SetTitle("FFT phase");
-
-# Draw histogram
-fft_phase_histogram.Draw()
-
-# Save canvas
-fft_phase_canvas.SaveAs("png/tutorial_FFT_phase.png");
-fft_phase_canvas.Print(pdf_name);
+input_points = n.array([])
+input_points.resize(n_FFT);
+for bin in range (1, n_bins + 1):
+    input_points[bin - 1] = hist.GetBinContent(bin)
 
 #------------------------------------------------------------------------------------------------
-# Revert back to original (inverse FFT)
+# Do the FFT!
 #------------------------------------------------------------------------------------------------
 
-# Go to the reconstruction canvas
-
-reconstruction_canvas.cd()
-
-# First get the original FFT
-
-fft = r.TVirtualFFT.GetCurrentTransform()
-
-# Get full real * i*imaginary contents of the original FFT
-
-fft_real_array = n.array ([])
-fft_imag_array = n.array ([])
-
-fft_real_array.resize(original_histogram_nbins)
-fft_imag_array.resize(original_histogram_nbins)
-
-fft.GetPointsComplex(fft_real_array, fft_imag_array)
-
-# Set up the inverse FFT and run it
-
-fft_inverse = r.TVirtualFFT.FFT(1, a.array("i",[original_histogram_nbins]) , "C2R M K")
-fft_inverse.SetPointsComplex(fft_real_array, fft_imag_array)
-fft_inverse.Transform();
-
-# Reconstruct the original histogram
-
-original_histogram_reconstruction_raw = r.NULL
-original_histogram_reconstruction_raw = r.TH1D.TransformHisto(fft_inverse, original_histogram_reconstruction_raw, "Re")
-original_histogram_reconstruction = r.TH1D("original_histogram_reconstruction","original_histogram_reconstruction",
-                                           original_histogram_nbins, original_function_xmin, original_function_xmax)
-
-for bin in range (1, original_histogram_nbins + 1):
-    original_histogram_reconstruction.SetBinContent(bin, original_histogram_reconstruction_raw.GetBinContent(bin))
-original_histogram_reconstruction.Scale (1.0 / float(original_histogram_nbins))
-
-original_histogram_reconstruction.GetXaxis().SetTitle("Time [s]")
-original_histogram_reconstruction.GetYaxis().SetTitle("A.U.")
-
-original_histogram_reconstruction.Draw();
-
-reconstruction_canvas.SaveAs("png/tutorial_reconstruction.png")
-reconstruction_canvas.Print(pdf_name)
+fft = r.TVirtualFFT.FFT(n_dimension, a.array("i",[n_FFT]), "R2C");
+fft.SetPoints(input_points);
+fft.Transform();
 
 #------------------------------------------------------------------------------------------------
-# Close pdf canvas
+# Store the information about the DC:
 #------------------------------------------------------------------------------------------------
 
-original_canvas.Print(pdf_name + "]")
+dc_real = r.Double()
+dc_imag = r.Double()
+fft.GetPointComplex(0, dc_real, dc_imag);
+
+#------------------------------------------------------------------------------------------------
+# Make the histograms corresponding to the FFT output
+#------------------------------------------------------------------------------------------------
+
+middle_bin = n_FFT / 2;
+
+spacing = getFrequencySpacing(sample_frequency, n_FFT)
+
+min_true_frequency = (getRealFrequency(middle_bin, sample_frequency, n_FFT) + (0.5 * getFrequencySpacing(sample_frequency, n_FFT))) * -1.0;
+max_true_frequency = min_true_frequency * -1.0;
+
+real_output_hist  = r.TH1F("real_output" ,"real_output" , n_FFT + 1, min_true_frequency, max_true_frequency);
+imag_output_hist  = r.TH1F("imag_output" ,"imag_output" , n_FFT + 1, min_true_frequency, max_true_frequency);
+mag_output_hist   = r.TH1F("mag_output"  ,"mag_output"  , n_FFT + 1, min_true_frequency, max_true_frequency);
+phase_output_hist = r.TH1F("phase_output","phase_output", n_FFT + 1, min_true_frequency, max_true_frequency);
+
+#------------------------------------------------------------------------------------------------
+# Fill the FFT histograms
+#------------------------------------------------------------------------------------------------
+
+real = r.Double()
+imag = r.Double()
+
+used_bins = []
+
+for i in range (0, n_FFT):
+    
+    fft.GetPointComplex(i, real, imag);
+    mag   = r.TMath.Sqrt((real * real) + (imag * imag));
+    phase = r.TMath.ATan(imag / real);
+    true_frequency = getRealFrequency(i, sample_frequency, n_FFT);
+    bin = real_output_hist.FindBin(true_frequency);
+
+    bin_low_edge  = real_output_hist.GetBinLowEdge(bin)
+    bin_high_edge = real_output_hist.GetBinLowEdge(bin+1)
+    up_spacing   = bin_high_edge - true_frequency
+    down_spacing = true_frequency - bin_low_edge
+
+    if i == middle_bin:
+        print "middle bin:", real, imag
+
+    if i == 0:
+        print "DC:", real, imag
+    
+    real_output_hist .SetBinContent ( bin, real  );
+    imag_output_hist .SetBinContent ( bin, imag  );
+    mag_output_hist  .SetBinContent ( bin, mag   );
+    phase_output_hist.SetBinContent ( bin, phase );
+
+    if bin not in used_bins:
+        used_bins.append ( bin ) 
+    else:
+        print "Used this bin already:", bin
+
+#------------------------------------------------------------------------------------------------
+# Style the FFT histograms
+#------------------------------------------------------------------------------------------------
+
+real_output_hist .Scale ( 1.0 / float(n_bins) );
+imag_output_hist .Scale ( 1.0 / float(n_bins) );
+mag_output_hist  .Scale ( 1.0 / float(n_bins) );
+phase_output_hist.Scale ( 1.0 / float(n_bins) );
+
+real_output_hist .GetXaxis().SetTitle("Frequency [Hz]");
+imag_output_hist .GetXaxis().SetTitle("Frequency [Hz]");
+mag_output_hist  .GetXaxis().SetTitle("Frequency [Hz]");
+phase_output_hist.GetXaxis().SetTitle("Frequency [Hz]");
+
+real_output_hist .GetYaxis().SetTitle("Real component [A.U.]");
+imag_output_hist .GetYaxis().SetTitle("Imaginary component [A.U.]");
+mag_output_hist  .GetYaxis().SetTitle("Magnitude [A.U.]");
+phase_output_hist.GetYaxis().SetTitle("Phase [A.U.]");
+
+hist             .GetYaxis().SetTitleOffset(1.4)
+real_output_hist .GetYaxis().SetTitleOffset(1.4)
+imag_output_hist .GetYaxis().SetTitleOffset(1.4)
+mag_output_hist  .GetYaxis().SetTitleOffset(1.4)
+phase_output_hist.GetYaxis().SetTitleOffset(1.4)
+
+#------------------------------------------------------------------------------------------------
+# Draw the FFT histograms
+#------------------------------------------------------------------------------------------------
+
+canvas = r.TCanvas()
+canvas.cd()
+canvas.SetTopMargin(0.1)
+
+canvas.Print(pdf_name + "[")
+
+hist.Draw()
+canvas.SaveAs("png/tutorial_original_histogram.png")
+canvas.Print(pdf_name)
+
+real_output_hist.Draw()
+canvas.SaveAs("png/tutorial_FFT_real.png")
+canvas.Print(pdf_name)
+
+imag_output_hist.Draw()
+canvas.SaveAs("png/tutorial_FFT_imag.png")
+canvas.Print(pdf_name)
+
+mag_output_hist.Draw()
+canvas.SaveAs("png/tutorial_FFT_magnitude.png")
+canvas.Print(pdf_name)
+
+phase_output_hist.Draw()
+canvas.SaveAs("png/tutorial_FFT_phase.png")
+canvas.Print(pdf_name)
+
+canvas.Print(pdf_name + "]")
+
+#------------------------------------------------------------------------------------------------
+# Done!
+#------------------------------------------------------------------------------------------------
